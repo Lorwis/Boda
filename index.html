@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boda de Alexa & Lorwis</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        #intro-overlay {
+            transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out;
+        }
+
+        @keyframes zoomOutIntro {
+            0% { transform: scale(1.15); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-zoom-out {
+            animation: zoomOutIntro 3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInDelayed {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in-delayed {
+            animation: fadeInDelayed 1s ease-out 1.5s forwards;
+            opacity: 0;
+        }
+
+        /* Efecto Glowing muy lento y suave para la historia */
+        @keyframes lavenderGlow {
+            0%, 100% { 
+                border-color: rgba(216, 180, 254, 0.4); 
+                box-shadow: 0 0 10px rgba(216, 180, 254, 0.15); 
+            }
+            50% { 
+                border-color: rgba(168, 85, 247, 0.8); 
+                box-shadow: 0 0 25px rgba(168, 85, 247, 0.35); 
+            }
+        }
+
+        .lavender-pulse {
+            animation: lavenderGlow 8s infinite ease-in-out;
+        }
+
+        /* Degradado de fondo desde #8686AC en la parte baja hasta difuminarse arriba */
+        .bottom-gradient-bg {
+            background: linear-gradient(to top, #8686AC 0%, rgba(134, 134, 172, 0.25) 45%, #fafaf9 90%);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(25px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-rose-100 selection:text-rose-900 bg-stone-50 text-stone-800">
+
+    <!-- POP-UP RSVP (Aparece al hacer scroll hacia el final de la página) -->
+    <div id="rsvp-popup" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-[#8686AC] text-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-white/20 text-center space-y-6 relative transform transition-all">
+            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto text-xl font-serif">💌</div>
+            <h3 class="font-serif text-2xl font-bold" data-i18n="popup_title">Mensaje Importante</h3>
+            <p class="text-sm md:text-base leading-relaxed font-light" data-i18n="rsvp_banner">
+                Muchas gracias por ser parte de nuestra historia. Por favor llena el siguiente RSVP con tu intención de acompañarnos. Te agradeceríamos que nos des una respuesta hasta finales de enero del 2027 y, en caso de emergencias, hasta finales de abril. Con mucho amor, Lorwis y Alexa
+            </p>
+            <button onclick="closeRsvpPopup()" class="w-full bg-white text-stone-900 font-medium py-3 px-6 rounded-xl hover:bg-stone-100 transition-colors text-sm shadow-sm cursor-pointer" data-i18n="popup_btn">
+                Entendido, ir al formulario
+            </button>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE VIDEO INICIAL Y SELECTOR DE IDIOMA -->
+    <div id="intro-overlay" class="fixed inset-0 z-50 bg-stone-950 flex flex-col items-center justify-center p-4 md:p-8">
+        <!-- Contenedor del Video -->
+        <div id="video-container" class="relative w-full max-w-4xl h-[65vh] md:h-[75vh] rounded-2xl overflow-hidden shadow-2xl border border-stone-800 bg-black animate-zoom-out">
+            <video id="intro-video" class="w-full h-full object-contain" autoplay controls playsinline>
+                <source src="assets/videos/intro.mp4" type="video/mp4">
+                Tu navegador no soporta videos HTML5.
+            </video>
+        </div>
+        
+        <!-- Botón OPEN con estilo difuminado en color #8686AC -->
+        <button id="open-btn" onclick="showLanguageSelector()" class="mt-6 bg-[#8686AC]/40 hover:bg-[#8686AC]/60 border border-[#8686AC]/60 text-white font-medium px-10 py-3.5 rounded-full transition-all duration-700 hover:scale-105 hover:shadow-xl text-sm tracking-widest uppercase shadow-lg cursor-pointer opacity-0 pointer-events-none translate-y-4 backdrop-blur-md">
+            OPEN
+        </button>
+
+        <!-- Selector de Idiomas (Se muestra al hacer clic en OPEN) -->
+        <div id="lang-selector" class="hidden absolute inset-0 bg-stone-950 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in-delayed" style="background-image: url('assets/images/fondo1.jpeg'); background-size: cover; background-position: center 35%;">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="relative z-10 max-w-md mx-auto space-y-6">
+                <h3 class="font-serif text-2xl md:text-3xl font-light tracking-wide" data-i18n="select_lang_title">Selecciona tu idioma</h3>
+                <div class="grid grid-cols-2 gap-4 w-full">
+                    <button onclick="setLanguage('es')" class="bg-white/10 hover:bg-white/20 border border-white/20 py-3.5 px-6 rounded-xl text-sm tracking-wider uppercase transition-all cursor-pointer backdrop-blur-md">Español</button>
+                    <button onclick="setLanguage('en')" class="bg-white/10 hover:bg-white/20 border border-white/20 py-3.5 px-6 rounded-xl text-sm tracking-wider uppercase transition-all cursor-pointer backdrop-blur-md">English</button>
+                    <button onclick="setLanguage('de')" class="bg-white/10 hover:bg-white/20 border border-white/20 py-3.5 px-6 rounded-xl text-sm tracking-wider uppercase transition-all cursor-pointer backdrop-blur-md">Deutsch</button>
+                    <button onclick="setLanguage('hu')" class="bg-white/10 hover:bg-white/20 border border-white/20 py-3.5 px-6 rounded-xl text-sm tracking-wider uppercase transition-all cursor-pointer backdrop-blur-md">Magyar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Navegación Dinámica -->
+    <header id="main-header" class="fixed top-0 left-0 right-0 bg-transparent text-white transition-all duration-300 z-40 border-b border-transparent">
+        <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+            <span id="nav-title" class="font-serif text-lg font-semibold tracking-tight transition-colors">Alexa & Lorwis</span>
+            <nav id="nav-links" class="hidden md:flex space-x-8 text-sm font-medium text-stone-200">
+                <a href="#historia" class="hover:text-rose-400 transition-colors" data-i18n="nav_history">Nuestra Historia</a>
+                <a href="#galeria" class="hover:text-rose-400 transition-colors" data-i18n="nav_gallery">Galería</a>
+                <a href="#ceremonia" class="hover:text-rose-400 transition-colors" data-i18n="nav_location">Ubicación</a>
+                <a href="#detalles" class="hover:text-rose-400 transition-colors" data-i18n="nav_details">Detalles</a>
+                <a href="#rsvp" class="hover:text-rose-400 transition-colors" data-i18n="nav_rsvp">Confirmar</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- SECCIÓN HERO -->
+    <section class="relative w-full min-h-screen flex items-center justify-center text-center px-6 bg-stone-950" style="background-image: url('assets/images/fondo1.jpeg'); background-size: cover; background-position: center 35%;">
+        <div class="absolute inset-0 bg-black/45 backdrop-blur-[1px]"></div>
+        <div class="relative z-10 max-w-3xl mx-auto space-y-6 text-white reveal pt-16">
+            <span class="text-xs font-semibold uppercase tracking-[0.25em] text-rose-300 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-sm" data-i18n="hero_badge">¡Nos casamos!</span>
+            <h1 class="font-serif text-5xl md:text-7xl font-bold tracking-tight leading-tight">
+                Alexa & Lorwis
+            </h1>
+            <p class="text-lg text-stone-200 max-w-xl mx-auto font-light" data-i18n="hero_subtitle">
+                Tenemos el placer de invitarte a celebrar el día más importante de nuestras vidas.
+            </p>
+            <div class="pt-4 text-stone-300 font-medium text-base flex flex-wrap justify-center items-center gap-3">
+                <span data-i18n="hero_date">📅 Sábado, 19 de Junio de 2027</span> 
+                <span>&bull;</span> 
+                <span>📍 Isabella Birtok</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTENEDOR CON EL DEGRADADO DE FONDO -->
+    <div class="w-full bottom-gradient-bg">
+        <main class="max-w-5xl mx-auto px-6 py-20 space-y-24">
+
+            <!-- Nuestra Historia -->
+            <section id="historia" class="grid md:grid-cols-2 gap-12 items-center reveal">
+                <div class="relative rounded-2xl overflow-hidden shadow-lg aspect-[4/3] group">
+                    <img src="assets/images/fondo1.jpeg" alt="Alexa & Lorwis" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" style="object-position: center 35%;">
+                </div>
+                <div class="space-y-6 text-left">
+                    <span class="text-xs font-bold uppercase tracking-widest text-rose-600 bg-rose-50 px-3 py-1 rounded-full" data-i18n="story_tag">Nuestra Historia</span>
+                    <h2 class="font-serif text-3xl md:text-4xl font-bold text-stone-900 leading-tight" data-i18n="story_title">A road built with love</h2>
+                    
+                    <div class="max-h-[320px] overflow-y-auto pr-3 space-y-4 text-sm text-stone-600 leading-relaxed font-light p-5 bg-white rounded-2xl border-2 lavender-pulse shadow-sm">
+                        <p data-i18n="story_p1">Our story began in November 2021 in the United States, where two people from different parts of the world lived just a few streets away from each other.</p>
+                        <p data-i18n="story_p2">A little help from our host mothers was needed for us to meet: thanks to them, we got to know each other one evening. We talked, danced, laughed, and had a wonderful time. What started as a friendship soon turned into something more. Through shared activities, dinners, trips, and countless conversations, we slowly realized that perhaps there was more between us than an international friendship.</p>
+                        <p data-i18n="story_p3">In January 2022, Lorwis came up with a special offer: what would Alexa think about a “Latino Boyfriend Package”? The package came with Latin temperament, a completely new culture, and a Colombian partner. Alexa decided: why not give it a try? Little did we know that the offer came with a long-term subscription, or exactly where this journey would lead us—especially since distance would soon become part of our story.</p>
+                        <p data-i18n="story_p4">From the United States to Colombia, and from Asia to Germany, our relationship crossed borders, time zones, and more than a few challenges. We got to know each other’s cultures, met the people who matter most to us, and learned that understanding each other sometimes means accepting and appreciating our differences.</p>
+                        <p data-i18n="story_p5">In December 2023, during a visit to Germany, Lorwis proposed to Alexa. When they arrived home from the airport, Alexa was welcomed by a decorated house, our song, and a huge “Marry Me” sign. The surprise was perfect, marking the beginning of another unforgettable chapter in our story. A few months later, in September 2024, we finally began our life together under one roof.</p>
+                        <p data-i18n="story_p6">Since then, we have been learning what it means to build a life together: sharing the little joys and challenges of everyday life, navigating the maze of European bureaucracy, and experiencing travels, new beginnings, and life’s challenges side by side. Through the beautiful moments as well as the more difficult times, we continue moving forward, choosing each other again and again.</p>
+                        <p data-i18n="story_p7">And now, as we reach another milestone in our lifelong adventure, we are ready to celebrate our love together with the people we love most.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Galería Interactiva Estilo Mazo de Póquer -->
+            <section id="galeria" class="space-y-6 reveal max-w-xs md:max-w-md mx-auto px-4 text-center">
+                <div class="space-y-2">
+                    <span class="text-xs font-bold uppercase tracking-widest text-rose-600 bg-rose-50 px-3 py-1 rounded-full" data-i18n="gallery_tag">Galería</span>
+                    <h2 class="font-serif text-3xl font-bold text-stone-900" data-i18n="gallery_title">Nuestros Momentos</h2>
+                    <p class="text-xs text-stone-400">Toca la foto para descubrir la siguiente</p>
+                </div>
+
+                <div id="card-stack" class="relative w-full aspect-[4/5] cursor-pointer select-none mx-auto pb-6" onclick="cycleCards()">
+                    <div class="card absolute inset-x-4 top-0 bottom-6 rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 ease-in-out transform scale-100 translate-y-0 z-30 bg-white border border-stone-200">
+                        <img src="assets/images/galeria1.jpeg" alt="Momento 1" class="w-full h-full object-cover">
+                    </div>
+                    <div class="card absolute inset-x-2 top-3 bottom-3 rounded-2xl overflow-hidden shadow-lg transition-all duration-500 ease-in-out transform scale-95 translate-y-4 z-20 bg-white border border-stone-200 opacity-90">
+                        <img src="assets/images/galeria2.jpeg" alt="Momento 2" class="w-full h-full object-cover">
+                    </div>
+                    <div class="card absolute inset-x-0 top-6 bottom-0 rounded-2xl overflow-hidden shadow-md transition-all duration-500 ease-in-out transform scale-90 translate-y-8 z-10 bg-white border border-stone-200 opacity-80">
+                        <img src="assets/images/galeria3.jpg" alt="Momento 3" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Ceremonia y Banquete -->
+            <section id="ceremonia" class="space-y-8 reveal">
+                <h2 class="font-serif text-3xl font-bold text-stone-900 text-center" data-i18n="ceremony_main_title">¿Dónde y cuándo?</h2>
+                <div class="max-w-2xl mx-auto bg-white p-8 md:p-10 rounded-2xl border border-stone-100 shadow-sm space-y-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-md text-center">
+                    <span class="text-xs font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-3 py-1 rounded-full">15:00 HRS</span>
+                    <h3 class="font-serif text-2xl font-semibold text-stone-900">Isabella Birtok</h3>
+                    <p class="text-sm text-stone-600 leading-relaxed max-w-md mx-auto" data-i18n="ceremony_desc">
+                        Te esperamos para celebrar nuestra ceremonia y banquete en un entorno maravilloso e inolvidable.
+                    </p>
+                    <a href="https://www.isabellabirtok.hu/" target="_blank" class="inline-block text-xs font-semibold text-rose-600 hover:underline pt-2" data-i18n="ceremony_link">Visitar sitio web del venue (Isabella Birtok) →</a>
+                </div>
+            </section>
+
+            <!-- Dress Code y Carrusel -->
+            <section id="detalles" class="grid md:grid-cols-2 gap-8 items-stretch reveal">
+                <div class="bg-white p-8 md:p-10 rounded-2xl border border-stone-100 shadow-sm flex flex-col justify-center text-left transition-all duration-300 hover:scale-[1.01] hover:shadow-md h-full">
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-3 py-1 rounded-full inline-block" data-i18n="dress_tag">Código de Vestimenta</span>
+                        </div>
+                        <h3 class="font-serif text-2xl font-semibold text-stone-900" data-i18n="dress_title">Formal / Elegante</h3>
+                        <div class="pt-4 border-t border-stone-100">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-rose-700" data-i18n="dress_note_title">Nota importante:</p>
+                            <p class="text-sm text-stone-600 font-medium mt-1" data-i18n="dress_note_desc">Los colores blanco y rojo se reservan exclusivamente para la novia.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative rounded-2xl overflow-hidden shadow-sm aspect-[3/4] bg-stone-900 group h-full">
+                    <img src="assets/images/carusel1.jpeg" class="carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-100" style="object-position: center 40%;" alt="Foto 1">
+                    <img src="assets/images/carusel2.jpeg" class="carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" style="object-position: center 40%;" alt="Foto 2">
+                    <img src="assets/images/carusel3.jpeg" class="carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" style="object-position: center center;" alt="Foto 3">
+                    <img src="assets/images/carusel4.jpeg" class="carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" style="object-position: center center;" alt="Foto 4">
+                    <img src="assets/images/carusel5.jpeg" class="carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" style="object-position: center center;" alt="Foto 5">
+                    <img src="assets/images/carusel6.jpeg" class="carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" style="object-position: center center;" alt="Foto 4">
+                    <img src="assets/images/carusel7.JPG" class="carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" style="object-position: center center;" alt="Foto 4">
+                    <img src="assets/images/carusel8.JPG" class="carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" style="object-position: center center;" alt="Foto 4">
+                </div>
+            </section>
+
+            <!-- Cuenta Regresiva -->
+            <section id="cuenta" class="bg-white p-8 md:p-12 rounded-2xl border border-stone-100 shadow-sm text-center space-y-6 reveal transition-all duration-300 hover:scale-[1.01] hover:shadow-md max-w-2xl mx-auto">
+                <h2 class="font-serif text-2xl font-semibold text-stone-900" data-i18n="countdown_title">Falta muy poco</h2>
+                <div class="grid grid-cols-4 gap-4 text-stone-700">
+                    <div class="bg-stone-50 p-4 rounded-xl border border-stone-100">
+                        <span id="days" class="block font-serif text-3xl font-bold text-rose-600">--</span>
+                        <span class="text-xs uppercase tracking-wider text-stone-400" data-i18n="c_days">Días</span>
+                    </div>
+                    <div class="bg-stone-50 p-4 rounded-xl border border-stone-100">
+                        <span id="hours" class="block font-serif text-3xl font-bold text-rose-600">--</span>
+                        <span class="text-xs uppercase tracking-wider text-stone-400" data-i18n="c_hours">Horas</span>
+                    </div>
+                    <div class="bg-stone-50 p-4 rounded-xl border border-stone-100">
+                        <span id="minutes" class="block font-serif text-3xl font-bold text-rose-600">--</span>
+                        <span class="text-xs uppercase tracking-wider text-stone-400" data-i18n="c_mins">Minutos</span>
+                    </div>
+                    <div class="bg-stone-50 p-4 rounded-xl border border-stone-100">
+                        <span id="seconds" class="block font-serif text-3xl font-bold text-rose-600">--</span>
+                        <span class="text-xs uppercase tracking-wider text-stone-400" data-i18n="c_secs">Segundos</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RSVP Formulario Limpio -->
+            <section id="rsvp" class="bg-white p-8 md:p-12 rounded-2xl border border-stone-100 shadow-sm space-y-6 reveal transition-all duration-300 hover:scale-[1.01] hover:shadow-md max-w-2xl mx-auto">
+                <div class="text-center space-y-2">
+                    <h2 class="font-serif text-2xl font-semibold text-stone-900" data-i18n="rsvp_title">Confirmación de Asistencia (RSVP)</h2>
+                    <p class="text-sm text-stone-500" data-i18n="rsvp_subtitle">Por favor confirma tu asistencia antes del 1 de Mayo de 2027.</p>
+                </div>
+                
+                <form action="https://formspree.io/f/xbglrnrz" method="POST" class="space-y-4 pt-4">
+                    <div>
+                        <label class="block text-xs font-medium uppercase tracking-wider text-stone-600 mb-1" data-i18n="rsvp_names">Nombre(s) de todos los invitados</label>
+                        <textarea name="nombres_invitados" rows="2" placeholder="Escribe los nombres de las personas que asistirán..." required class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-500 text-sm bg-stone-50/50 resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium uppercase tracking-wider text-stone-600 mb-1" data-i18n="rsvp_email">Correo electrónico</label>
+                        <input type="email" name="email" placeholder="tucorreo@ejemplo.com" required class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-500 text-sm bg-stone-50/50">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium uppercase tracking-wider text-stone-600 mb-1" data-i18n="rsvp_attendance">¿Asistirás?</label>
+                            <select name="asistencia" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-500 text-sm bg-stone-50/50">
+                                <option value="Sí, ahí estaré" data-i18n="opt_yes">Sí, ahí estaré</option>
+                                <option value="No podré asistir" data-i18n="opt_no">No podré asistir</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium uppercase tracking-wider text-stone-600 mb-1" data-i18n="rsvp_adults">Total de invitados</label>
+                            <select name="total_adultos" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-500 text-sm bg-stone-50/50">
+                                <option value="1 Adulto">1 Adulto</option>
+                                <option value="2 Adultos">2 Adultos</option>
+                                <option value="3 Adultos">3 Adultos</option>
+                                <option value="4 Adultos">4 Adultos</option>
+                                <option value="5 o más Adultos">5 o más Adultos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium uppercase tracking-wider text-stone-600 mb-1" data-i18n="rsvp_kids">¿Cuántos niños vienen?</label>
+                            <select name="cantidad_ninos" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-500 text-sm bg-stone-50/50">
+                                <option value="0 niños">0 niños</option>
+                                <option value="1 niño">1 niño</option>
+                                <option value="2 niños">2 niños</option>
+                                <option value="3 o más niños">3 o más niños</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium uppercase tracking-wider text-stone-600 mb-1" data-i18n="rsvp_kids_age">Edades de los niños</label>
+                            <input type="text" name="edades_ninos" placeholder="Ej. 3 y 7 años" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-500 text-sm bg-stone-50/50">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium uppercase tracking-wider text-stone-600 mb-1" data-i18n="rsvp_country">¿De qué país vienen?</label>
+                        <input type="text" name="pais_procedencia" placeholder="Ej. Alemania, Colombia, Estados Unidos..." required class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-500 text-sm bg-stone-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium uppercase tracking-wider text-stone-600 mb-1" data-i18n="rsvp_diet">Restricciones alimentarias / Alergias</label>
+                        <input type="text" name="restricciones" placeholder="Ej. Vegetariano, alergia al gluten..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-500 text-sm bg-stone-50/50">
+                    </div>
+                    <div class="pt-2 text-center">
+                        <button type="submit" class="w-full bg-stone-900 text-white font-medium py-3 px-6 rounded-xl hover:bg-stone-800 transition-colors text-sm shadow-sm cursor-pointer" data-i18n="rsvp_btn">
+                            Enviar Confirmación
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="max-w-5xl mx-auto px-6 py-12 text-center text-xs text-stone-400 reveal">
+            <p data-i18n="footer_text">Con mucho amor, Alexa & Lorwis &bull; 2027</p>
+        </footer>
+    </div>
+
+    <!-- Scripts con lógica de Idioma y Animaciones -->
+    <script>
+        const translations = {
+            es: {
+                select_lang_title: "Selecciona tu idioma",
+                nav_history: "Nuestra Historia",
+                nav_gallery: "Galería",
+                nav_location: "Ubicación",
+                nav_details: "Detalles",
+                nav_rsvp: "Confirmar",
+                hero_badge: "¡Nos casamos!",
+                hero_subtitle: "Tenemos el placer de invitarte a celebrar el día más importante de nuestras vidas.",
+                hero_date: "📅 Sábado, 19 de Junio de 2027",
+                story_tag: "Nuestra Historia",
+                story_title: "Un camino construido con amor",
+                story_p1: "Nuestra historia comenzó en noviembre de 2021 en Estados Unidos, donde dos personas de distintas partes del mundo vivían a apenas unas calles de distancia.",
+                story_p2: "Hizo falta una pequeña ayuda de nuestras madres de acogida para que nos conociéramos: gracias a ellas, coincidimos una noche. Hablamos, bailamos, reímos y pasamos un rato maravilloso. Lo que empezó como una amistad pronto se convirtió en algo más. A través de actividades compartidas, cenas, viajes e incontables conversaciones, fuimos comprendiendo poco a poco que tal vez entre nosotros había algo más que una amistad internacional.",
+                story_p3: "En enero de 2022, Lorwis apareció con una oferta muy especial: ¿qué pensaría Alexa de un “Paquete de Novio Latino”? El paquete venía con temperamento latino, una cultura totalmente nueva y un compañero colombiano. Alexa decidió: ¿por qué no probar? Ninguno de los dos sabía que aquella oferta incluía una suscripción a largo plazo, ni exactamente hacia dónde nos llevaría este viaje, sobre todo teniendo en cuenta que la distancia pronto formaría parte de nuestra historia.",
+                story_p4: "Desde Estados Unidos hasta Colombia, y desde Asia hasta Alemania, nuestra relación cruzó fronteras, husos horarios y más de un desafío. Llegamos a conocer las culturas del otro, conocimos a las personas que más nos importan y aprendimos que entendernos mutuamente a veces significa aceptar y valorar nuestras diferencias.",
+                story_p5: "En diciembre de 2023, durante una visita a Alemania, Lorwis le propuso matrimonio a Alexa. Al llegar a casa desde el aeropuerto, Alexa fue recibida por una casa decorada, nuestra canción y un enorme cartel de «Cásate conmigo». La sorpresa fue perfecta y marcó el inicio de otro capítulo inolvidable en nuestra historia. Unos meses después, en septiembre de 2024, por fin comenzamos nuestra vida juntos bajo el mismo techo.",
+                story_p6: "Desde entonces, hemos estado aprendiendo lo que significa construir una vida en común: compartir las pequeñas alegrías y los retos del día a día, navegar por el laberinto de la burocracia europea y experimentar viajes, nuevos comienzos y los desafíos de la vida codo con codo. A través de los momentos hermosos y también de los más difíciles, seguimos avanzando, eligiéndonos una y otra vez.",
+                story_p7: "Y ahora, al alcanzar un nuevo hito en nuestra aventura para toda la vida, estamos listos para celebrar nuestro amor junto a las personas que más amamos.",
+                gallery_tag: "Galería",
+                gallery_title: "Nuestros Momentos",
+                ceremony_main_title: "¿Dónde y cuándo?",
+                ceremony_desc: "Te esperamos para celebrar nuestra ceremonia y banquete en un entorno maravilloso e inolvidable.",
+                ceremony_link: "Visitar sitio web del venue (Isabella Birtok) →",
+                dress_tag: "Código de Vestimenta",
+                dress_title: "Formal / Elegante",
+                dress_note_title: "Nota importante:",
+                dress_note_desc: "Los colores blanco y rojo se reservan exclusivamente para la novia.",
+                countdown_title: "Falta muy poco",
+                c_days: "Días", c_hours: "Horas", c_mins: "Minutos", c_secs: "Segundos",
+                popup_title: "Mensaje Importante",
+                popup_btn: "Entendido, ir al formulario",
+                rsvp_banner: "Muchas gracias por ser parte de nuestra historia. Por favor llena el siguiente RSVP con tu intención de acompañarnos. Te agradeceríamos que nos des una respuesta hasta finales de enero del 2027 y, en caso de emergencias, hasta finales de abril. Con mucho amor, Lorwis y Alexa",
+                rsvp_title: "Confirmación de Asistencia (RSVP)",
+                rsvp_subtitle: "Por favor confirma tu asistencia antes del 1 de Mayo de 2027.",
+                rsvp_names: "Nombre(s) de todos los invitados",
+                rsvp_email: "Correo electrónico",
+                rsvp_attendance: "¿Asistirás?",
+                opt_yes: "Sí, ahí estaré",
+                opt_no: "No podré asistir",
+                rsvp_adults: "Total de invitados",
+                rsvp_kids: "¿Cuántos niños vienen?",
+                rsvp_kids_age: "Edades de los niños",
+                rsvp_country: "¿De qué país vienen?",
+                rsvp_diet: "Restricciones alimentarias / Alergias",
+                rsvp_btn: "Enviar Confirmación",
+                footer_text: "Con mucho amor, Alexa & Lorwis • 2027"
+            },
+            en: {
+                select_lang_title: "Please select your language",
+                nav_history: "Our Story",
+                nav_gallery: "Gallery",
+                nav_location: "Location",
+                nav_details: "Details",
+                nav_rsvp: "RSVP",
+                hero_badge: "We're getting married!",
+                hero_subtitle: "We have the pleasure of inviting you to celebrate the most important day of our lives.",
+                hero_date: "📅 Saturday, June 19, 2027",
+                story_tag: "Our Story",
+                story_title: "A road built with love",
+                story_p1: "Our story began in November 2021 in the United States, where two people from different parts of the world lived just a few streets away from each other.",
+                story_p2: "A little help from our host mothers was needed for us to meet: thanks to them, we got to know each other one evening. We talked, danced, laughed, and had a wonderful time. What started as a friendship soon turned into something more. Through shared activities, dinners, trips, and countless conversations, we slowly realized that perhaps there was more between us than an international friendship.",
+                story_p3: "In January 2022, Lorwis came up with a special offer: what would Alexa think about a “Latino Boyfriend Package”? The package came with Latin temperament, a completely new culture, and a Colombian partner. Alexa decided: why not give it a try? Little did we know that the offer came with a long-term subscription, or exactly where this journey would lead us—especially since distance would soon become part of our story.",
+                story_p4: "From the United States to Colombia, and from Asia to Germany, our relationship crossed borders, time zones, and more than a few challenges. We got to know each other’s cultures, met the people who matter most to us, and learned that understanding each other sometimes means accepting and appreciating our differences.",
+                story_p5: "In December 2023, during a visit to Germany, Lorwis proposed to Alexa. When they arrived home from the airport, Alexa was welcomed by a decorated house, our song, and a huge “Marry Me” sign. The surprise was perfect, marking the beginning of another unforgettable chapter in our story. A few months later, in September 2024, we finally began our life together under one roof.",
+                story_p6: "Since then, we have been learning what it means to build a life together: sharing the little joys and challenges of everyday life, navigating the maze of European bureaucracy, and experiencing travels, new beginnings, and life’s challenges side by side. Through the beautiful moments as well as the more difficult times, we continue moving forward, choosing each other again and again.",
+                story_p7: "And now, as we reach another milestone in our lifelong adventure, we are ready to celebrate our love together with the people we love most.",
+                gallery_tag: "Gallery",
+                gallery_title: "Our Moments",
+                ceremony_main_title: "Where & When",
+                ceremony_desc: "We look forward to celebrating our ceremony and banquet in a wonderful and unforgettable setting.",
+                ceremony_link: "Visit venue website (Isabella Birtok) →",
+                dress_tag: "Dress Code",
+                dress_title: "Formal / Elegant",
+                dress_note_title: "Important note:",
+                dress_note_desc: "White and red colors are reserved exclusively for the bride.",
+                countdown_title: "Counting down the days",
+                c_days: "Days", c_hours: "Hours", c_mins: "Minutes", c_secs: "Seconds",
+                popup_title: "Important Message",
+                popup_btn: "Got it, go to form",
+                rsvp_banner: "Thank you so much for being part of our story. Please fill out the following RSVP to let us know if you can join us. We would appreciate it if you could give us your response by the end of January 2027, and in case of emergencies, by the end of April. With much love, Lorwis and Alexa",
+                rsvp_title: "Attendance Confirmation (RSVP)",
+                rsvp_subtitle: "Please confirm your attendance by May 1, 2027.",
+                rsvp_names: "Name(s) of all guests",
+                rsvp_email: "Email address",
+                rsvp_attendance: "Will you attend?",
+                opt_yes: "Yes, I will be there",
+                opt_no: "I won't be able to attend",
+                rsvp_adults: "Total guests",
+                rsvp_kids: "How many kids are coming?",
+                rsvp_kids_age: "Kids' ages",
+                rsvp_country: "Which country are you coming from?",
+                rsvp_diet: "Dietary restrictions / Allergies",
+                rsvp_btn: "Send Confirmation",
+                footer_text: "With love, Alexa & Lorwis • 2027"
+            },
+            de: {
+                select_lang_title: "Bitte wählen Sie Ihre Sprache",
+                nav_history: "Unsere Geschichte",
+                nav_gallery: "Galerie",
+                nav_location: "Ort",
+                nav_details: "Details",
+                nav_rsvp: "Zusage",
+                hero_badge: "Wir heiraten!",
+                hero_subtitle: "Wir laden Sie herzlich ein, den wichtigsten Tag unseres Lebens mit uns zu feiern.",
+                hero_date: "📅 Samstag, 19. Juni 2027",
+                story_tag: "Unsere Geschichte",
+                story_title: "Ein gemeinsam aufgebauter Weg",
+                story_p1: "Unsere Geschichte begann im November 2021 in den Vereinigten Staaten, wo zwei Menschen aus verschiedenen Teilen der Welt nur wenige Straßen voneinander entfernt lebten.",
+                story_p2: "Es brauchte ein wenig Hilfe von unseren Gastmüttern, damit wir uns trafen: Dank ihnen lernten wir uns an einem Abend kennen. Wir unterredeten uns, tanzten, lachten und hatten eine wunderbare Zeit. Was als Freundschaft begann, wurde bald zu mehr. Durch gemeinsame Aktivitäten, Abendessen, Reisen und unzählige Gespräche merkten wir langsam, dass da vielleicht mehr zwischen uns war als nur eine internationale Freundschaft.",
+                story_p3: "Im Januar 2022 kam Lorwis mit einem besonderen Angebot: Was würde Alexa von einem „Latino-Freund-Paket“ halten? Das Paket kam mit lateinamerikanischem Temperament, einer völlig neuen Kultur und einem kolumbianischen Partner. Alexa beschloss: Warum nicht einfach ausprobieren? Wir ahnten damals noch nicht, dass dieses Angebot ein Langzeitabonnement beinhaltete und wohin uns diese Reise führen würde – vor allem, da bald auch die Distanz ein Teil unserer Geschichte werden sollte.",
+                story_p4: "Von den USA bis Kolumbien und von Asien bis nach Deutschland überquerte unsere Beziehung Grenzen, Zeitzonen und so mancherlei Herausforderung. Wir lernten die Kultur des anderen kennen, trafen die Menschen, die uns am wichtigsten sind, und lernten, dass einander zu verstehen manchmal bedeutet, unsere Unterschiede anzunehmen und zu schätzen.",
+                story_p5: "Im Dezember 2023, während eines Besuchs in Deutschland, machte Lorwis Alexa einen Heiratsantrag. Als sie vom Flughafen nach Hause kamen, wurde Alexa von einem geschmückten Haus, unserem Lied und einem riesigen „Marry Me“-Schild empfangen. Die Überraschung war perfekt und markierte den Beginn eines weiteren unvergesslichen Kapitels unserer Geschichte. Ein paar Monate später, im September 2024, begannen wir schließlich unser gemeinsames Leben unter einem Dach.",
+                story_p6: "Seitdem lernen wir, was es bedeutet, ein Leben gemeinsam aufzubauen: die kleinen Freuden und Herausforderungen des Alltags zu teilen, durch das Labyrinth der europäischen Bürokratie zu navigieren und Reisen, Neuanfänge und die Hürden des Lebens Seite an Seite zu meistern. Sowohl in den wunderschönen als auch in den schwierigeren Momenten gehen wir unseren Weg weiter und entscheiden uns immer wieder aufs Neue füreinander.",
+                story_p7: "Und jetzt, da wir einen weiteren Meilenstein in unserem lebenslangen Abenteuer erreichen, sind wir bereit, unsere Liebe gemeinsam mit den Menschen zu feiern, die wir am meisten lieben.",
+                gallery_tag: "Galerie",
+                gallery_title: "Unsere Momente",
+                ceremony_main_title: "Wann & Wo",
+                ceremony_desc: "Wir erwarten Sie zur Trauung und zum Empfang in einer wunderschönen und unvergesslichen Umgebung.",
+                ceremony_link: "Venue-Website besuchen (Isabella Birtok) →",
+                dress_tag: "Dresscode",
+                dress_title: "Festlich / Elegant",
+                dress_note_title: "Wichtiger Hinweis:",
+                dress_note_desc: "Die Farben Weiß und Rot sind exklusiv der Braut vorbehalten.",
+                countdown_title: "Es ist nicht mehr lange hin",
+                c_days: "Tage", c_hours: "Stunden", c_mins: "Minuten", c_secs: "Sekunden",
+                popup_title: "Wichtige Nachricht",
+                popup_btn: "Verstanden, zum Formular",
+                rsvp_banner: "Vielen Dank, dass Sie ein Teil unserer Geschichte sind. Bitte füllen Sie das folgende RSVP aus, um uns Ihre Teilnahme mitzuteilen. Wir wären Ihnen dankbar, wenn Sie uns bis Ende Januar 2027 und im Notfall bis Ende April eine Rückmeldung geben könnten. Mit viel Liebe, Lorwis und Alexa",
+                rsvp_title: "Zusage / Absage (RSVP)",
+                rsvp_subtitle: "Bitte bestätigen Sie Ihre Teilnahme bis zum 1. Mai 2027.",
+                rsvp_names: "Name(n) aller Gäste",
+                rsvp_email: "E-Mail-Adresse",
+                rsvp_attendance: "Werden Sie teilnehmen?",
+                opt_yes: "Ja, ich bin dabei",
+                opt_no: "Ich kann leider nicht kommen",
+                rsvp_adults: "Anzahl Erwachsene",
+                rsvp_kids: "Wie viele Kinder kommen mit?",
+                rsvp_kids_age: "Alter der Kinder",
+                rsvp_country: "Aus welchem Land reisen Sie an?",
+                rsvp_diet: "Ernährungseinschränkungen / Allergien",
+                rsvp_btn: "Bestätigung senden",
+                footer_text: "Mit viel Liebe, Alexa & Lorwis • 2027"
+            },
+            hu: {
+                select_lang_title: "Válaszd ki a nyelvet",
+                nav_history: "Történetünk",
+                nav_gallery: "Galéria",
+                nav_location: "Helyszín",
+                nav_details: "Részletek",
+                nav_rsvp: "Visszajelzés",
+                hero_badge: "Összeházasodunk!",
+                hero_subtitle: "Szeretettel hívunk és várunk életünk legfontosabb napjának megünneplésére.",
+                hero_date: "📅 2027. június 19., szombat",
+                story_tag: "Történetünk",
+                story_title: "Szeretettel épített út",
+                story_p1: "Történetünk 2021 novemberében kezdődött az Egyesült Államokban, ahol a világ két különböző pontjáról érkező ember alig néhány utcára lakott egymástól.",
+                story_p2: "Kellett egy kis segítség a fogadóanyáinktól, hogy összehozzanak minket: nekik köszönhetően egy este megismertük egymást. Beszélgettünk, táncoltunk, nevettünk, és csodás időt töltöttünk együtt. Ami barátságnak indult, hamarosan többé vált. Közös programok, vacsorák, utazások és számtalan beszélgetés révén lassan rájöttünk, hogy talán több is van köztünk, mint egy egyszerű nemzetközi barátság.",
+                story_p3: "2022 januárjában Lorwis előállt egy különleges ajánlattal: mit szólna Alexa egy „latino barát csomaghoz”? A csomag tartalmazott latin temperamentumot, egy teljesen új kultúrát és egy kolumbiai partnert. Alexa úgy döntött: miért is ne próbálnánk meg? Még nem tudtuk, hogy az ajánlat egy hosszú távú előfizetéssel jár, és azt sem, hová vezet ez az utazás – különösen mivel a távolság hamarosan a történetünk részévé vált.",
+                story_p4: "Az Egyesült Államoktól Kolumbiáig, Ázsiától Németországig a kapcsolatunk határokat, időzónákat és nem egy nehézséget lépett át. Megismertük egymás kultúráját, találkoztunk a számunkra legfontosabb emberekkel, és megtanultuk, hogy egymás megértése néha azt jelenti, hogy elfogadjuk és értékeljük a különbözőségeinket.",
+                story_p5: "2023 decemberében, egy németországi látogatás alkalmával Lorwis megkérte Alexa kezét. Amikor hazaértek a reptérről, Alexát feldíszített ház, a dalunk és egy hatalmas „Marry Me” felirat fogadta. A meglepetés tökéletes volt, és egy újabb felejthetetlen fejezet nyitánya történetünkben. Néhány hónappal később, 2024 szeptemberében végül egy tető alatt kezdtük meg közös életünket.",
+                story_p6: "Azóta azt tanuljuk, mit jelent közös életet építeni: megosztani a mindennapok apró örömait és kihívásait, eligazodni az európai bürokrácia labirintusában, és utazásokat, új kezdeteket, valamint az élet akadályait egymás mellett megtapasztalni. A szép pillanatakon és a nehezebb időszakokon át is haladunk előre, újra és újra egymást választva.",
+                story_p7: "És most, ahogy egy újabb mérföldkőhöz érkezünk életre szóló kalandunkban, készen állunk arra, hogy szerelmünket együtt ünnepeljük azokkal, akiket a legjobban szeretünk.",
+                gallery_tag: "Galéria",
+                gallery_title: "Pillanataink",
+                ceremony_main_title: "Hol és mikor?",
+                ceremony_desc: "Szeretettel várunk az esküvői szertartásunkra és az azt követő ünneplésre egy csodálatos helyszínen.",
+                ceremony_link: "A helyszín weboldalának megtekintése (Isabella Birtok) →",
+                dress_tag: "Dress Code",
+                dress_title: "Formális / Elegáns",
+                dress_note_title: "Fontos megjegyzés:",
+                dress_note_desc: "A fehér és a piros színek viselése kizárólag a menyasszonyt illeti meg.",
+                countdown_title: "Visszaszámlálás",
+                c_days: "Nap", c_hours: "Óra", c_mins: "Perc", c_secs: "Másodperc",
+                popup_title: "Fontos Üzenet",
+                popup_btn: "Értem, tovább a űrlaphoz",
+                rsvp_banner: "Köszönjük szépen, hogy a történetünk részese vagy! Kérlek, töltsd ki az alábbi RSVP-t a részvételi szándékodról. Nagyon megköszönnénk, ha a választ legkésőbb 2027. január végéig, vészhelyzet esetén pedig április végéig jeleznéd. Sok szeretettel, Lorwis és Alexa",
+                rsvp_title: "Részvételi Visszajelzés (RSVP)",
+                rsvp_subtitle: "Kérlek, jelezd vissza a részvételed 2027. május 1-jéig.",
+                rsvp_names: "A résztvevő vendégek neve(i)",
+                rsvp_email: "E-mail cím",
+                rsvp_attendance: "Ott leszel?",
+                opt_yes: "Igen, ott leszek!",
+                opt_no: "Sajnos nem tudok ott lenni",
+                rsvp_adults: "Felnőttek száma",
+                rsvp_kids: "Hány gyerek érkezik?",
+                rsvp_kids_age: "A gyerekek életkora",
+                rsvp_country: "Melyik országból jöttök?",
+                rsvp_diet: "Étrendi korlátozások / Allergien",
+                rsvp_btn: "Visszajelzés elküldése",
+                footer_text: "Sok szeretettel, Alexa & Lorwis • 2027"
+            }
+        };
+
+        // Al hacer clic en OPEN, pausa el video y muestra el selector de idiomas
+        function showLanguageSelector() {
+            const videoContainer = document.getElementById('video-container');
+            const openBtn = document.getElementById('open-btn');
+            const langSelector = document.getElementById('lang-selector');
+            const video = document.getElementById('intro-video');
+
+            video.pause();
+            videoContainer.style.display = 'none';
+            openBtn.style.display = 'none';
+            langSelector.classList.remove('hidden');
+        }
+
+        // Función para aplicar el idioma seleccionado y ocultar el overlay de bienvenida
+        function setLanguage(lang) {
+            const t = translations[lang];
+            if (!t) return;
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) {
+                    el.innerText = t[key];
+                }
+            });
+
+            const overlay = document.getElementById('intro-overlay');
+            overlay.style.opacity = '0';
+            overlay.style.visibility = 'hidden';
+        }
+
+        // Script para desplegar el pop-up únicamente cuando el usuario hace scroll hacia la sección RSVP
+        let rsvpPopupTriggered = false;
+        window.addEventListener('scroll', () => {
+            if (rsvpPopupTriggered) return;
+            const rsvpSection = document.getElementById('rsvp');
+            if (!rsvpSection) return;
+            const rect = rsvpSection.getBoundingClientRect();
+            if (window.scrollY > 1200 && rect.top < window.innerHeight * 0.75) {
+                rsvpPopupTriggered = true;
+                document.getElementById('rsvp-popup').classList.remove('hidden');
+            }
+        });
+
+        function closeRsvpPopup() {
+            const popup = document.getElementById('rsvp-popup');
+            popup.classList.add('hidden');
+        }
+
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('main-header');
+            const navTitle = document.getElementById('nav-title');
+            const navLinks = document.getElementById('nav-links');
+
+            if (window.scrollY > 80) {
+                header.classList.add('bg-white/90', 'backdrop-blur-md', 'shadow-sm', 'border-stone-100');
+                header.classList.remove('bg-transparent', 'border-transparent');
+                navTitle.classList.remove('text-white');
+                navTitle.classList.add('text-stone-900');
+                navLinks.classList.remove('text-stone-200');
+                navLinks.classList.add('text-stone-600');
+            } else {
+                header.classList.remove('bg-white/90', 'backdrop-blur-md', 'shadow-sm', 'border-stone-100');
+                header.classList.add('bg-transparent', 'border-transparent');
+                navTitle.classList.remove('text-stone-900');
+                navTitle.classList.add('text-white');
+                navLinks.classList.remove('text-stone-600');
+                navLinks.classList.add('text-stone-200');
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    } else {
+                        entry.target.classList.remove('active');
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.reveal').forEach(section => {
+                observer.observe(section);
+            });
+        });
+
+        // Carrusel automático para fotos de vestimenta
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.carousel-slide');
+        function nextSlide() {
+            if (slides.length === 0) return;
+            slides[currentSlide].classList.remove('opacity-100');
+            slides[currentSlide].classList.add('opacity-0');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.remove('opacity-0');
+            slides[currentSlide].classList.add('opacity-100');
+        }
+        setInterval(nextSlide, 3500);
+
+        // Lógica de ciclo para la galería de cartas (mazo de póquer)
+        function cycleCards() {
+            const stack = document.getElementById('card-stack');
+            const cards = stack.querySelectorAll('.card');
+            if (cards.length < 2) return;
+            
+            stack.appendChild(cards[0]);
+            
+            const updatedCards = stack.querySelectorAll('.card');
+            updatedCards.forEach((card, index) => {
+                card.className = "card absolute rounded-2xl overflow-hidden transition-all duration-500 ease-in-out bg-white border border-stone-200";
+                if (index === 0) {
+                    card.classList.add('inset-x-4', 'top-0', 'bottom-6', 'z-30', 'scale-100', 'translate-y-0', 'opacity-100', 'shadow-2xl');
+                } else if (index === 1) {
+                    card.classList.add('inset-x-2', 'top-3', 'bottom-3', 'z-20', 'scale-95', 'translate-y-4', 'opacity-90', 'shadow-lg');
+                } else {
+                    card.classList.add('inset-x-0', 'top-6', 'bottom-0', 'z-10', 'scale-90', 'translate-y-8', 'opacity-80', 'shadow-md');
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const btn = document.getElementById('open-btn');
+                if (btn) {
+                    btn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+                    btn.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+                }
+            }, 2000);
+        });
+
+        const weddingDate = new Date("June 19, 2027 15:00:00").getTime();
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = weddingDate - now;
+
+            if (distance > 0) {
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                const daysEl = document.getElementById("days");
+                const hoursEl = document.getElementById("hours");
+                const minutesEl = document.getElementById("minutes");
+                const secondsEl = document.getElementById("seconds");
+
+                if (daysEl) daysEl.innerText = days;
+                if (hoursEl) hoursEl.innerText = hours;
+                if (minutesEl) minutesEl.innerText = minutes;
+                if (secondsEl) secondsEl.innerText = seconds;
+            }
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+    </script>
+</body>
+</html>
